@@ -23,6 +23,7 @@ BezierDemonstration::BezierDemonstration()
 
 BezierDemonstration::~BezierDemonstration()
 {
+	JoinThread();
 	delete m_app_window;
 };
 
@@ -133,8 +134,8 @@ void BezierDemonstration::JoinThread()
 	{
 		if (std::fabs(m_curr_t.load() - 1.0) <= 0.000001)
 		{
-			m_creating_thread->join();
-			delete m_creating_thread;
+			m_action_thread->join();
+			delete m_action_thread;
 			m_curr_t.exchange(0);
 			m_is_now_create = false;
 		}
@@ -160,25 +161,27 @@ void BezierDemonstration::AddPoint()
 
 void BezierDemonstration::DrawSignal()
 {
-	m_image.create(m_app_window->getSize().x, m_app_window->getSize().x);
-	float step = 1.0 / (m_max_scale * 
-		[&]()->float 
-	{
-		float length = 0;
-		for (int i = 0; i < m_points.size(); ++i)
+	if (m_points.size() >= 2) {
+		m_image.create(m_app_window->getSize().x, m_app_window->getSize().x);
+		float step = 1.0 / (m_max_scale *
+			[&]()->float
 		{
-			length += std::sqrt(std::pow(m_points[i].x, 2) + std::pow(m_points[i].y, 2));
-		}
-		return length;
-	}());
-	
-	m_curve.resize(static_cast<int>((1 / step)));
-	//Create pointer to thread
-	std::vector<float> coefs = get_bin_coefs(m_points.size() - 1);
-	m_creating_thread = new std::thread(bezier_curve, m_points, std::ref(m_curve), step, coefs, std::ref(m_curr_t));
+			float length = 0;
+			for (int i = 0; i < m_points.size(); ++i)
+			{
+				length += std::sqrt(std::pow(m_points[i].x, 2) + std::pow(m_points[i].y, 2));
+			}
+			return length;
+		}());
 
-	m_is_now_create = true;
-	m_is_present_curve = true;
+		m_curve.resize(static_cast<int>((1 / step)));
+		//Create pointer to thread
+		std::vector<float> coefs = get_bin_coefs(m_points.size() - 1);
+		m_action_thread = new std::thread(bezier_curve, m_points, std::ref(m_curve), step, coefs, std::ref(m_curr_t));
+
+		m_is_now_create = true;
+		m_is_present_curve = true;
+	}
 };
 
 
@@ -222,9 +225,10 @@ void BezierDemonstration::ChangeStateLabel()
 	buf_string += "Amount of points: " + std::to_string(m_points.size()) + "\n";
 
 	buf_string += "Current t: " + std::to_string(m_curr_t.load()) + "\n";
-	//TODO:: add other info
+	buf_string += "Rotation: " + std::to_string(m_current_angle) + "\n";
+	buf_string += "Scale: " +  std::to_string(m_current_scale) + "\n";
+	buf_string += "Position: " + std::to_string(m_current_position.x) + "  " + std::to_string(m_current_position.y) + "\n";
 	
-
 	m_state_label->SetText(buf_string);
 };
 

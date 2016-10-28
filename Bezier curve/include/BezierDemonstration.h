@@ -39,7 +39,7 @@ private:
 	sf::Font					m_font;
 	sf::Color					m_color;
 
-	std::thread*				m_creating_thread;
+	std::thread*				m_action_thread;
 
 	const  unsigned int			c_width = 800;
 	const  unsigned int			c_heigth = 600;
