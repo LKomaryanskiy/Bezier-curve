@@ -21,6 +21,9 @@
     <ClInclude Include="include\BezierDemonstration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\ts_vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BezierCurve.cpp">

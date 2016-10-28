@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="include\BezierCurve.h" />
     <ClInclude Include="include\BezierDemonstration.h" />
+    <ClInclude Include="include\ts_vector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BezierCurve.cpp" />
