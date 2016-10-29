@@ -16,13 +16,13 @@ public:
 		vector.resize(size);
 	};
 
-	T get_value(int i)
+	T get_value(int i) const
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 		return vector[i];
 	};
 
-	int size()
+	int size() const
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 		return vector.size();
@@ -32,6 +32,12 @@ public:
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 		vector.resize(size);
+	};
+
+	void push_back(const T& elem)
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		vector.push_back(elem);
 	};
 	
 	void set_value(int i, const T& value)

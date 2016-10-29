@@ -1,5 +1,6 @@
 #pragma once
 #include <BezierCurve.h>
+#include <Transform.h>
 
 #include <string>
 #include <SFGUI/SFGUI.hpp>
@@ -24,12 +25,14 @@ private:
 	sfg::Label::Ptr				m_state_label;
 
 	bool						m_is_present_curve;
-	bool						m_is_now_create;
+	bool						m_is_now_change;
+	std::atomic_bool			m_is_thread_done;
+
 	std::atomic<float>			m_curr_t;
 
 	sf::Image					m_image;
 	
-	std::vector<sf::Vector2f>	m_points;
+	ts_vector<sf::Vector2f>		m_points;
 	ts_vector<sf::Vector2f>		m_curve;
 	float						m_max_scale;
 	float						m_current_scale;
@@ -49,9 +52,14 @@ private:
 	void DisplayCurve();
 	void CreateInterface();
 
-	void JoinThread();
+	void JoinThreads();
 
+	void MouseEvents(sf::Event event);
 	void AddPoint();
+	void Scaling(float scale_factor);
+	void Moving();
+	void Rotation();
+
 
 	void DrawSignal();
 	void ClaerSignal();

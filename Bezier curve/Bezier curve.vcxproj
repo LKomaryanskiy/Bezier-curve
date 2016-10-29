@@ -21,11 +21,13 @@
   <ItemGroup>
     <ClInclude Include="include\BezierCurve.h" />
     <ClInclude Include="include\BezierDemonstration.h" />
+    <ClInclude Include="include\Transform.h" />
     <ClInclude Include="include\ts_vector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BezierCurve.cpp" />
     <ClCompile Include="src\BezierDemonstration.cpp" />
+    <ClCompile Include="src\Transform.cpp" />
     <ClCompile Include="test\Tests.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
