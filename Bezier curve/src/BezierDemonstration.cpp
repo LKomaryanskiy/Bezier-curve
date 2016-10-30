@@ -3,7 +3,7 @@
 BezierDemonstration::BezierDemonstration()
 {
 	m_app_window = new sf::RenderWindow(sf::VideoMode(c_width, c_heigth), "Bezier", sf::Style::Titlebar | sf::Style::Close);
-	m_app_window->setFramerateLimit(30);
+	m_app_window->setFramerateLimit(c_frame_limlit);
 	m_app_window->resetGLStates();
 
 	m_window = sfg::Window::Create();
@@ -14,6 +14,9 @@ BezierDemonstration::BezierDemonstration()
 	m_is_now_change = false;
 	m_is_present_curve = false;
 	m_is_thread_done = true;
+	m_is_move_event = false;
+	m_is_rotate_event = false;
+	m_is_need_update = false;
 
 	CreateInterface();
 	m_current_angle = 0;
@@ -44,7 +47,6 @@ void BezierDemonstration::Run()
 		}
 
 		ChangeStateLabel();
-		JoinThreads();
 	
 		m_window->Update(0.f);
 		m_app_window->clear();
@@ -52,6 +54,8 @@ void BezierDemonstration::Run()
 		DisplayPoints();
 		m_sfgui.Display(*m_app_window);
 		m_app_window->display();
+
+		JoinThreads();
 	}
 };
 
@@ -81,11 +85,8 @@ void BezierDemonstration::DisplayCurve()
 	if (m_is_now_change || m_is_present_curve)
 	{
 		sf::Texture texture;
-		if (m_is_now_change)
-		{
-			//Update pixels
-			UpdateImage();
-		}
+		//Update pixels
+		UpdateImage();
 		texture.loadFromImage(m_image);
 		sf::Sprite sprite(texture);
 		m_app_window->draw(sprite);
@@ -152,23 +153,44 @@ void BezierDemonstration::MouseEvents(sf::Event event)
 			&&	sf::Mouse::getPosition(*m_app_window).y > m_window->GetAllocation().top
 			&& sf::Mouse::getPosition(*m_app_window).y < m_window->GetAllocation().top + m_window->GetAllocation().height))
 	{
-		if (!m_is_present_curve)
+		if (!m_is_present_curve && m_points.size() < 12)
 		{
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
 			{
 				AddPoint();
 			}
 		}
-		else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+		else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left && !m_is_move_event && !m_is_rotate_event)
 		{
-
+			m_click_pos = sf::Vector2f(sf::Mouse::getPosition());
+			m_is_move_event = true;
 		}
 		else if (event.type == sf::Event::MouseWheelMoved)
 		{
-			m_image.create(m_app_window->getSize().x, m_app_window->getSize().x);
+			m_image.create(m_app_window->getSize().x, m_app_window->getSize().y);
 			float previous_scale = m_current_scale;
-			m_current_scale += event.mouseWheel.delta / 10.0;
+			m_current_scale += event.mouseWheel.delta / 50.0;
 			Scaling(m_current_scale / previous_scale);
+		}
+		else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right && !m_is_move_event && !m_is_rotate_event)
+		{
+			m_click_pos = sf::Vector2f(sf::Mouse::getPosition());
+			m_is_rotate_event = true;
+		}
+		
+		if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left && m_is_move_event)
+		{
+			m_image.create(m_app_window->getSize().x, m_app_window->getSize().y);
+			m_current_position += sf::Vector2f(sf::Mouse::getPosition()) - m_click_pos;
+			Moving(sf::Vector2f(sf::Mouse::getPosition()) - m_click_pos);
+			m_is_move_event = false;
+		}
+		if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Right && m_is_rotate_event)
+		{
+			m_image.create(m_app_window->getSize().x, m_app_window->getSize().y);
+			m_current_angle += (sf::Vector2f(sf::Mouse::getPosition()).x - m_click_pos.x) / 500.0;
+			Rotation((sf::Vector2f(sf::Mouse::getPosition()).x - m_click_pos.x) / 500.0);
+			m_is_rotate_event = false;
 		}
 	}
 };
@@ -191,21 +213,48 @@ void BezierDemonstration::Scaling(float scale_factor)
 		scale(m_points, scale_factor, std::atomic_bool());
 
 		m_is_now_change = true;
+		m_is_need_update = true;
 	}
 };
 
-void BezierDemonstration::Moving()
+void BezierDemonstration::Moving(sf::Vector2f offset)
 {
+	if (!m_is_now_change)
+	{
+		m_action_thread = new std::thread(
+			moving,
+			std::ref(m_curve),
+			offset,
+			std::ref(m_is_thread_done));
+
+		moving(m_points, offset, std::atomic_bool());
+
+		m_is_now_change = true;
+		m_is_need_update = true;
+	}
 };
 
-void BezierDemonstration::Rotation()
+void BezierDemonstration::Rotation(float angle)
 {
+	if (!m_is_now_change)
+	{
+		m_action_thread = new std::thread(
+			rotation,
+			std::ref(m_curve),
+			angle,
+			std::ref(m_is_thread_done));
+
+		rotation(m_points, angle, std::atomic_bool());
+
+		m_is_now_change = true;
+		m_is_need_update = true;
+	}
 };
 
 void BezierDemonstration::DrawSignal()
 {
 	if (m_points.size() >= 2) {
-		m_image.create(m_app_window->getSize().x, m_app_window->getSize().x);
+		m_image.create(m_app_window->getSize().x, m_app_window->getSize().y);
 		float step = 1.0 / (m_max_scale *
 			[&]()->float
 		{
@@ -230,6 +279,7 @@ void BezierDemonstration::DrawSignal()
 
 		m_is_now_change = true;
 		m_is_present_curve = true;
+		m_is_need_update = true;
 	}
 };
 
@@ -239,6 +289,7 @@ void BezierDemonstration::ClaerSignal()
 	m_app_window->clear();
 	m_is_present_curve = false;
 	m_is_now_change = false;
+	m_is_need_update = false;
 	m_points.clear();
 	m_curve.clear();
 	m_current_angle = 0;
@@ -283,14 +334,26 @@ void BezierDemonstration::ChangeStateLabel()
 
 void BezierDemonstration::UpdateImage()
 {
-	int n = m_curve.size();
-	sf::Vector2f buf;
-	for (int i = 0; i < n; i++)
+	if (m_is_need_update) 
 	{
-		buf = m_curve.get_value(i);
-		if (buf.x >= 0 && buf.x < m_image.getSize().x && buf.y >= 0 && buf.y < m_image.getSize().y)
+		int n = m_curve.size();
+		sf::Vector2f buf;
+		sf::Vector2f prev_pixel = m_curve.get_value(0);
+		for (int i = 0; i < n; i++)
 		{
-			m_image.setPixel(buf.x, buf.y, m_color);
+			buf = m_curve.get_value(i);
+			if (std::fabs(buf.x - prev_pixel.x) <= 1 && std::fabs(buf.y - prev_pixel.y))
+			{
+				if (buf.x >= 0 && buf.x < m_image.getSize().x && buf.y >= 0 && buf.y < m_image.getSize().y)
+				{
+					m_image.setPixel(buf.x, buf.y, m_color);
+				}
+				prev_pixel = buf;
+			}
 		}
+	}
+	if (m_is_thread_done && m_is_now_change && m_is_need_update)
+	{
+		m_is_need_update = false;
 	}
 };
