@@ -51,9 +51,10 @@ private:
 
 	std::thread*				m_action_thread;
 
-	const unsigned int			c_width = 800;
-	const unsigned int			c_heigth = 600;
-	const unsigned int			c_frame_limlit = 30;
+	const unsigned int			c_width = 1200;
+	const unsigned int			c_heigth = 700;
+	const unsigned int			c_frame_limlit = 60;
+	const int					c_max_points = 13;
 	const std::string			c_font_file_path = "Content\\Font\\Y2K Neophyte Italic.ttf";
 
 	void DisplayPoints();

@@ -109,15 +109,20 @@ void BezierDemonstration::CreateInterface()
 	sfg::Button::Ptr exit_button = sfg::Button::Create("Exit");
 	exit_button->GetSignal(sfg::Widget::OnLeftClick).Connect(std::bind(&sf::RenderWindow::close, m_app_window));
 
-	sfg::SpinButton::Ptr max_scale = sfg::SpinButton::Create(5.f, 100.f, 1.f);
+	control_box->Pack(draw_button);
+	control_box->Pack(clear_button);
+	control_box->Pack(exit_button);
+
+	sfg::Box::Ptr max_scale_box = sfg::Box::Create(sfg::Box::Orientation::HORIZONTAL);
+
+	sfg::Label::Ptr max_scale_label = sfg::Label::Create("Max scale: ");
+	sfg::SpinButton::Ptr max_scale = sfg::SpinButton::Create(5.f, 50.f, 1.f);
 	max_scale->SetDigits(0);
 	max_scale->SetRequisition(sf::Vector2f(50.f, 0.f));
 	max_scale->GetSignal(sfg::SpinButton::OnValueChanged).Connect(std::bind(&BezierDemonstration::ChangeMaxScaleSignal, this, max_scale->GetValue()));
 
-	control_box->Pack(draw_button);
-	control_box->Pack(max_scale);
-	control_box->Pack(clear_button);
-	control_box->Pack(exit_button);
+	max_scale_box->Pack(max_scale_label);
+	max_scale_box->Pack(max_scale);
 
 	sfg::Box::Ptr state_box = sfg::Box::Create(sfg::Box::Orientation::VERTICAL);
 
@@ -126,6 +131,7 @@ void BezierDemonstration::CreateInterface()
 	state_box->Pack(m_state_label);
 
 	main_box->Pack(control_box);
+	main_box->Pack(max_scale_box);
 	main_box->Pack(state_box);
 };
 
@@ -153,9 +159,9 @@ void BezierDemonstration::MouseEvents(sf::Event event)
 			&&	sf::Mouse::getPosition(*m_app_window).y > m_window->GetAllocation().top
 			&& sf::Mouse::getPosition(*m_app_window).y < m_window->GetAllocation().top + m_window->GetAllocation().height))
 	{
-		if (!m_is_present_curve && m_points.size() < 12)
+		if (!m_is_present_curve)
 		{
-			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left && m_points.size() < c_max_points)
 			{
 				AddPoint();
 			}
@@ -165,11 +171,11 @@ void BezierDemonstration::MouseEvents(sf::Event event)
 			m_click_pos = sf::Vector2f(sf::Mouse::getPosition());
 			m_is_move_event = true;
 		}
-		else if (event.type == sf::Event::MouseWheelMoved)
+		else if (event.type == sf::Event::MouseWheelMoved && m_current_scale + event.mouseWheel.delta / 25.0 <= m_max_scale)
 		{
 			m_image.create(m_app_window->getSize().x, m_app_window->getSize().y);
 			float previous_scale = m_current_scale;
-			m_current_scale += event.mouseWheel.delta / 50.0;
+			m_current_scale += event.mouseWheel.delta / 25.0;
 			Scaling(m_current_scale / previous_scale);
 		}
 		else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Right && !m_is_move_event && !m_is_rotate_event)
@@ -322,12 +328,39 @@ void BezierDemonstration::ChangeStateLabel()
 	}
 	buf_string += "\n";
 	//Points info
-	buf_string += "Amount of points: " + std::to_string(m_points.size()) + "\n";
+	buf_string += "Amount of points: " + std::to_string(m_points.size()) + "/" + std::to_string(c_max_points) + "\n";
 
 	buf_string += "Current t: " + std::to_string(m_curr_t.load()) + "\n";
 	buf_string += "Rotation: " + std::to_string(m_current_angle) + "\n";
 	buf_string += "Scale: " +  std::to_string(m_current_scale) + "\n";
 	buf_string += "Position: " + std::to_string(m_current_position.x) + "  " + std::to_string(m_current_position.y) + "\n";
+
+	//Current action status
+	buf_string += "Status: ";
+	if (!m_is_present_curve)
+	{
+		buf_string += "Clean screen.\n";
+	}
+	else if (m_is_present_curve)
+	{
+		buf_string += "Bezier curve is on screen,\n";
+	}
+
+	buf_string += "Event: ";
+
+	if (m_is_move_event)
+	{
+		buf_string += "move to " + std::to_string(sf::Vector2f(sf::Mouse::getPosition()).x - m_click_pos.x) + "  " + 
+			std::to_string(sf::Vector2f(sf::Mouse::getPosition()).y - m_click_pos.y) + "\n";
+	}
+	else if (m_is_rotate_event)
+	{
+		buf_string += "rotate to " + std::to_string((sf::Vector2f(sf::Mouse::getPosition()).x - m_click_pos.x) / 500.0) + "\n";
+	}
+	else
+	{
+		buf_string += "none\n";
+	}
 	
 	m_state_label->SetText(buf_string);
 };
@@ -342,7 +375,7 @@ void BezierDemonstration::UpdateImage()
 		for (int i = 0; i < n; i++)
 		{
 			buf = m_curve.get_value(i);
-			if (std::fabs(buf.x - prev_pixel.x) <= 1 && std::fabs(buf.y - prev_pixel.y))
+			if (std::fabs(buf.x - prev_pixel.x) <= 1 && std::fabs(buf.y - prev_pixel.y) && (std::fabs(buf.x - prev_pixel.x) >= 0.5 || std::fabs(buf.y - prev_pixel.y) >= 0.5))
 			{
 				if (buf.x >= 0 && buf.x < m_image.getSize().x && buf.y >= 0 && buf.y < m_image.getSize().y)
 				{
