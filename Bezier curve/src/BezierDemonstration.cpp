@@ -375,7 +375,7 @@ void BezierDemonstration::UpdateImage()
 		for (int i = 0; i < n; i++)
 		{
 			buf = m_curve.get_value(i);
-			if (std::fabs(buf.x - prev_pixel.x) <= 1 && std::fabs(buf.y - prev_pixel.y) && (std::fabs(buf.x - prev_pixel.x) >= 0.5 || std::fabs(buf.y - prev_pixel.y) >= 0.5))
+			if (std::fabs(buf.x - prev_pixel.x) <= 1 && std::fabs(buf.y - prev_pixel.y) && (std::fabs(buf.x - prev_pixel.x) >= 0.8 || std::fabs(buf.y - prev_pixel.y) >= 0.8))
 			{
 				if (buf.x >= 0 && buf.x < m_image.getSize().x && buf.y >= 0 && buf.y < m_image.getSize().y)
 				{
