@@ -13,4 +13,4 @@ void bezier_curve(	const ts_vector<sf::Vector2f>& points,
 
 std::vector<float> get_bin_coefs(int n);
 
-int factorial(int n);
+double factorial(int n);

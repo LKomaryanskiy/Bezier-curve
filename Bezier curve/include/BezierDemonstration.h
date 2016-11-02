@@ -53,8 +53,8 @@ private:
 
 	const unsigned int			c_width = 1200;
 	const unsigned int			c_heigth = 700;
-	const unsigned int			c_frame_limlit = 10;
-	const int					c_max_points = 13;
+	const unsigned int			c_frame_limlit = 20;
+	const int					c_max_points = 55;
 	const std::string			c_font_file_path = "Content\\Font\\Y2K Neophyte Italic.ttf";
 
 	void DisplayPoints();
